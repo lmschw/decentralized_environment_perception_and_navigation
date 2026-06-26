@@ -1,0 +1,12 @@
+seed: 42
+
+physics:
+  timestep: 0.0041666667
+
+environment:
+  width: 20
+  height: 20
+
+robot:
+  radius: 0.08
+  wheel_base: 0.095
