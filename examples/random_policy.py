@@ -4,7 +4,10 @@ from swarmrl.policy.random_policy import RandomPolicy
 
 config = load_config("configs/default.yaml")
 
-env = SwarmEnv(config, gui=True)
+env = SwarmEnv(
+    config,
+    num_agents=10,
+)
 
 policy = RandomPolicy()
 

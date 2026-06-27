@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+
 from swarmrl.environment.maze import MazeGenerator
 from swarmrl.environment.pybullet_world import World
 
@@ -25,6 +27,7 @@ class SwarmEnv:
     def __init__(
         self,
         config,
+        num_agents=1,
         robot_cls=ThymioRobot,
         sensor_cls=RaySensor,
         agent_cls=EmbodiedAgent,
@@ -32,6 +35,8 @@ class SwarmEnv:
     ):
         self.config = config
         self.gui = gui
+
+        self.num_agents = num_agents
 
         self.robot_cls = robot_cls
         self.sensor_cls = sensor_cls
@@ -60,15 +65,24 @@ class SwarmEnv:
 
         self.agents = []
 
-        # Sprint 1.4: one anonymous robot
-        agent = self.agent_cls(
-            robot=self.robot_cls(),
-            sensor=self.sensor_cls(),
+        spawn_positions = self._sample_spawn_positions(
+            maze,
+            seed if seed is not None else self.config.environment.seed,
         )
 
-        self.world.add_robot(agent.robot)
+        for position in spawn_positions:
 
-        self.agents.append(agent)
+            agent = self.agent_cls(
+                robot=self.robot_cls(),
+                sensor=self.sensor_cls(),
+            )
+
+            self.world.add_robot(
+                agent.robot,
+                position,
+            )
+
+            self.agents.append(agent)
 
         self.step_count = 0
 
@@ -139,3 +153,34 @@ class SwarmEnv:
         if self.world is not None:
             self.world.close()
             self.world = None
+
+
+    def _sample_spawn_positions(self, maze, seed):
+        """
+        Sample free maze cells without replacement.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+        """
+
+        rng = np.random.default_rng(seed)
+
+        free_cells = []
+
+        height, width = maze.shape
+
+        for y in range(height):
+            for x in range(width):
+
+                if maze[y, x] == 0:
+                    free_cells.append((x, y))
+
+        if self.num_agents > len(free_cells):
+            raise ValueError(
+                "More agents requested than free cells available."
+            )
+
+        rng.shuffle(free_cells)
+
+        return free_cells[: self.num_agents]

@@ -95,10 +95,26 @@ class World:
     # ---------------------------------------------------------
     # Robot management
     # ---------------------------------------------------------
-    def add_robot(self, robot):
-        self.robots.append(robot)
-        robot.spawn(self.client, self.cell_size)
+    def add_robot(self, robot, position):
+        """
+        Add a robot to the simulation.
 
+        Parameters
+        ----------
+        robot : Robot
+            Robot instance.
+
+        position : tuple[int, int]
+            Maze cell coordinates (x, y).
+        """
+
+        self.robots.append(robot)
+
+        robot.spawn(
+            self.client,
+            self.cell_size,
+            grid_position=position,
+        )
     # ---------------------------------------------------------
     # Simulation loop
     # ---------------------------------------------------------
