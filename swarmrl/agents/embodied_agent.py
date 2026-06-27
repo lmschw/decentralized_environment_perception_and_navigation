@@ -1,8 +1,6 @@
 class EmbodiedAgent:
-    """
-    Container for one anonymous swarm agent.
-    """
 
-    def __init__(self, robot, sensor):
+    def __init__(self, index, robot, sensor):
+        self.index = index
         self.robot = robot
         self.sensor = sensor

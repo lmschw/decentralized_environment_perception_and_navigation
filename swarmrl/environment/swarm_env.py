@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import math
 
 from swarmrl.environment.maze import MazeGenerator
 from swarmrl.environment.pybullet_world import World
@@ -70,9 +71,10 @@ class SwarmEnv:
             seed if seed is not None else self.config.environment.seed,
         )
 
-        for position in spawn_positions:
+        for i, position in enumerate(spawn_positions):
 
             agent = self.agent_cls(
+                index=i,
                 robot=self.robot_cls(),
                 sensor=self.sensor_cls(),
             )
@@ -88,7 +90,10 @@ class SwarmEnv:
 
         observations = self._collect_observations()
 
-        info = {}
+        info = {
+            "step": self.step_count,
+            "num_agents": len(self.agents),
+        }
 
         return observations, info
 
@@ -145,42 +150,50 @@ class SwarmEnv:
 
         return observations
 
-    def close(self):
-        """
-        Close the environment.
-        """
+    def render(self):
+        pass  # PyBullet GUI already renders
 
+    def close(self):
         if self.world is not None:
             self.world.close()
             self.world = None
 
-
     def _sample_spawn_positions(self, maze, seed):
         """
-        Sample free maze cells without replacement.
-
-        Returns
-        -------
-        list[tuple[int, int]]
+        Deterministically sample spawn locations with a minimum spacing.
         """
 
         rng = np.random.default_rng(seed)
 
-        free_cells = []
-
         height, width = maze.shape
 
-        for y in range(height):
-            for x in range(width):
+        candidates = [
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if maze[y, x] == 0
+        ]
 
-                if maze[y, x] == 0:
-                    free_cells.append((x, y))
+        rng.shuffle(candidates)
 
-        if self.num_agents > len(free_cells):
-            raise ValueError(
-                "More agents requested than free cells available."
+        positions = []
+
+        min_distance = 2  # cells
+
+        for candidate in candidates:
+
+            if all(
+                math.dist(candidate, existing) >= min_distance
+                for existing in positions
+            ):
+                positions.append(candidate)
+
+            if len(positions) == self.num_agents:
+                break
+
+        if len(positions) != self.num_agents:
+            raise RuntimeError(
+                "Could not find enough valid spawn positions."
             )
 
-        rng.shuffle(free_cells)
-
-        return free_cells[: self.num_agents]
+        return positions
