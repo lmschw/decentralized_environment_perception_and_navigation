@@ -16,6 +16,7 @@ class RandomPolicy:
                 {
                     "left": np.random.uniform(-1.0, 1.0),
                     "right": np.random.uniform(-1.0, 1.0),
+                    "broadcast": np.random.randint(0, 16)
                 }
                 for _ in observations
             ]

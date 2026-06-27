@@ -7,8 +7,9 @@ class EmbodiedAgent:
         self.robot = robot
         self.sensor = sensor
 
-        # Diagnostics only
+        self.broadcast = 0
+
+        # Diagnostics
         self.distance_travelled = 0.0
         self.previous_position = None
-
         self.collisions = 0

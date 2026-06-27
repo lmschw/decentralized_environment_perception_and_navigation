@@ -10,6 +10,7 @@ from swarmrl.environment.coverage import CoverageTracker
 from swarmrl.agents.embodied_agent import EmbodiedAgent
 from swarmrl.embodiment.thymio import ThymioRobot
 from swarmrl.sensing.raycast import RaySensor
+from swarmrl.communication.channel import CommunicationChannel
 
 class SwarmEnv:
     """
@@ -47,6 +48,10 @@ class SwarmEnv:
         self.agents = []
 
         self.step_count = 0
+
+        self.channel = CommunicationChannel(
+            radius=0.20
+        )
 
     def reset(self, seed=None):
         """
@@ -92,8 +97,15 @@ class SwarmEnv:
             agent.previous_position = agent.robot.get_position()
         self.step_count = 0
 
-        observations = self._collect_observations()
+        empty_messages = [
+            []
+            for _ in self.agents
+        ]
 
+        observations = self._collect_observations(
+            empty_messages
+        )
+        
         info = {
             "step": self.step_count,
             "num_agents": len(self.agents),
@@ -120,7 +132,15 @@ class SwarmEnv:
                 action["right"],
             )
 
+            agent.broadcast = int(
+                action["broadcast"]
+            )
+
         self.world.step()
+
+        messages = self.channel.transmit(
+            self.agents
+        )
 
         for agent in self.agents:
             position = agent.robot.get_position()
@@ -148,7 +168,7 @@ class SwarmEnv:
             if agent.robot.get_contacts():
                 agent.collisions += 1
 
-        observations = self._collect_observations()
+        observations = self._collect_observations(messages)
 
         rewards = [0.0 for _ in self.agents]
 
@@ -161,8 +181,6 @@ class SwarmEnv:
             **self._collect_metrics(),
         }
 
-        print(info)
-
         return (
             observations,
             rewards,
@@ -171,15 +189,16 @@ class SwarmEnv:
             info,
         )
 
-    def _collect_observations(self):
+    def _collect_observations(self, messages):
         observations = []
+        for agent, inbox in zip(self.agents, messages):
 
-        for agent in self.agents:
             observations.append(
                 {
                     "proximity": agent.sensor.sense(
                         agent.robot.body_id
-                    )
+                    ),
+                    "messages": inbox,
                 }
             )
 
