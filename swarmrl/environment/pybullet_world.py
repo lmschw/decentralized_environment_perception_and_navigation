@@ -102,10 +102,12 @@ class World:
     # ---------------------------------------------------------
     # Simulation loop
     # ---------------------------------------------------------
-    def step(self, dt: float = 1 / 240):
-        for robot in self.robots:
-            robot.apply_action(dt)
-            robot.physics_step()
+    def step(self, agents, dt=1/240):
+        for agent in agents:
+            obs, action = agent.act(self)
+
+            agent.robot.apply_action(dt)
+            agent.robot.physics_step()
 
         p.stepSimulation()
 
