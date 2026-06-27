@@ -141,3 +141,20 @@ class ThymioRobot:
             linearVelocity=[vx, vy, 0.0],
             angularVelocity=[0.0, 0.0, self.omega],
         )
+
+    def get_position(self):
+        pos, _ = p.getBasePositionAndOrientation(self.body_id)
+        return np.array(pos[:2])
+    
+    def get_heading(self):
+        _, orn = p.getBasePositionAndOrientation(self.body_id)
+
+        _, _, yaw = p.getEulerFromQuaternion(orn)
+
+        return yaw
+    
+    def get_contacts(self):
+        if self.body_id is None:
+            return []
+
+        return p.getContactPoints(self.body_id)

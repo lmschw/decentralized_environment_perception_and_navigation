@@ -14,7 +14,14 @@ policy = RandomPolicy()
 obs, info = env.reset()
 
 while True:
-
     actions = policy(obs)
 
-    obs, reward, terminated, truncated, info = env.step(actions)
+    obs, rewards, terminated, truncated, info = env.step(actions)
+
+    if info["step"] % 100 == 0:
+        print(
+            f"Step {info['step']:4d} | "
+            f"Coverage: {info['coverage']:.1%} | "
+            f"Distance: {sum(info['distance_travelled']):.2f} m | "
+            f"Collisions: {sum(info['collisions'])}"
+        )

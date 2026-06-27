@@ -5,11 +5,11 @@ import math
 
 from swarmrl.environment.maze import MazeGenerator
 from swarmrl.environment.pybullet_world import World
+from swarmrl.environment.coverage import CoverageTracker
 
 from swarmrl.agents.embodied_agent import EmbodiedAgent
 from swarmrl.embodiment.thymio import ThymioRobot
 from swarmrl.sensing.raycast import RaySensor
-
 
 class SwarmEnv:
     """
@@ -62,6 +62,8 @@ class SwarmEnv:
             seed=seed if seed is not None else self.config.environment.seed,
         ).generate()
 
+        self.coverage_tracker = CoverageTracker(maze)
+
         self.world = World(maze, gui=self.gui)
 
         self.agents = []
@@ -86,6 +88,8 @@ class SwarmEnv:
 
             self.agents.append(agent)
 
+        for agent in self.agents:
+            agent.previous_position = agent.robot.get_position()
         self.step_count = 0
 
         observations = self._collect_observations()
@@ -93,6 +97,7 @@ class SwarmEnv:
         info = {
             "step": self.step_count,
             "num_agents": len(self.agents),
+            **self._collect_metrics(),
         }
 
         return observations, info
@@ -117,6 +122,32 @@ class SwarmEnv:
 
         self.world.step()
 
+        for agent in self.agents:
+            position = agent.robot.get_position()
+
+            if agent.previous_position is not None:
+
+                agent.distance_travelled += np.linalg.norm(
+                    position - agent.previous_position
+                )
+
+            agent.previous_position = position
+
+        positions = [
+            agent.robot.get_position()
+            for agent in self.agents
+        ]
+
+        self.coverage_tracker.update(
+            positions,
+            self.world.cell_size,
+        )
+
+        for agent in self.agents:
+
+            if agent.robot.get_contacts():
+                agent.collisions += 1
+
         observations = self._collect_observations()
 
         rewards = [0.0 for _ in self.agents]
@@ -126,7 +157,11 @@ class SwarmEnv:
 
         info = {
             "step": self.step_count,
+            "num_agents": len(self.agents),
+            **self._collect_metrics(),
         }
+
+        print(info)
 
         return (
             observations,
@@ -197,3 +232,17 @@ class SwarmEnv:
             )
 
         return positions
+    
+    def _collect_metrics(self):
+        return {
+            "coverage": self.coverage_tracker.coverage,
+            "explored_cells": len(self.coverage_tracker.visited),
+            "distance_travelled": [
+                agent.distance_travelled
+                for agent in self.agents
+            ],
+            "collisions": [
+                agent.collisions
+                for agent in self.agents
+            ],
+        }
