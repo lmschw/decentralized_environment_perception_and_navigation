@@ -1,20 +1,17 @@
-from swarmrl.environment.maze import MazeGenerator
-from swarmrl.environment.pybullet_world import World
-from swarmrl.embodiment.thymio import ThymioRobot
-from swarmrl.sensing.raycast import RaySensor
-from swarmrl.agent.agent import Agent
+from swarmrl.core.config import load_config
+from swarmrl.environment.swarm_env import SwarmEnv
 from swarmrl.policy.random_policy import RandomPolicy
 
-maze = MazeGenerator(21, 21, 42).generate()
-world = World(maze, gui=True)
+config = load_config("configs/default.yaml")
 
-robot = ThymioRobot()
-world.add_robot(robot)
+env = SwarmEnv(config, gui=True)
 
-sensor = RaySensor(num_rays=7, max_dist=0.15)
 policy = RandomPolicy()
 
-agent = Agent(robot, sensor, policy)
+obs, info = env.reset()
 
 while True:
-    world.step([agent])
+
+    actions = policy(obs)
+
+    obs, reward, terminated, truncated, info = env.step(actions)
